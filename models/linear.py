@@ -18,8 +18,8 @@ class UnivariateLinearRegression:
         return y_pred
 
 
-class MultiVariateLinearRegression:
-    """Multivariate linear regression class."""
+class LinearRegressionNormal:
+    """Multivariate linear regression using the Normal Equation class."""
     def __init__(self, pad=False):
         self._pad = pad
         self.weights = 0
@@ -40,3 +40,106 @@ class MultiVariateLinearRegression:
         ones = np.ones(X.shape[0]).reshape(-1, 1)  # get ones for each instance
         X = np.concatenate((ones, X), axis=1)
         return X
+
+
+class LinearRegression():
+    def __init__(self, lr, tolerance, pad=False):
+        self.lr = lr
+        self.tolerance
+        self.pad = pad
+        self.losses = [np.inf]
+        self.weights = 0
+
+    def fit(self, X, y, iterations):
+        """
+        Apply gradient descent based on number of iterations or until loss
+        stops improving more than specified tolerance level.
+        """
+        self.weights = np.random.randn(X.shape[1], y.shape[1])
+        if self.pad:
+            X = np.hstack([np.ones([X.shape[0], 1]), X])
+        for i in range(iterations):
+            y_pred = X @ self.weights
+            loss = self._get_mse(y, y_pred)
+            self.losses.append(loss)
+            gradients = -1.0 * (y - y_pred).T @ X
+            self.weights -= self.lr * gradients.T
+            if np.abs(self.losses[-1] - self.losses[-2]) / self.losses[-1] < self.tolerance:
+                break
+        return self.weights
+
+    def predict(self, X, pad=False):
+        y_pred = X @ self.weights
+        return y_pred
+
+    def _get_mse(self, y_true, y_pred):
+        """MSE loss function."""
+        return np.trace((y_true - y_pred).T @ (y_true - y_pred)) / y_true.shape[0]
+
+    def plot_losses(self):
+        """Plot the losses after applying gradient descent."""
+        plt.figure(figsize=(6, 6))
+        plt.plot(self.losses)
+        sns.despine(left=True)
+        plt.xlabel('Iterations')
+        plt.ylabel('Loss')
+        plt.title('Loss vs Number of Iterations')
+
+class LassoLinearRegression(LinearRegression):
+    def __init__(self, lr, tolerance, lamb, pad=False):
+        super()__.init__(self, lr, tolerance, pad=False)
+        self.lamb = lamb
+
+    def fit(self, X, y, iterations):
+        self.weights = np.random.randn(X.shape[1], y.shape[1])
+        if self.pad:
+            X = np.hstack([np.ones([X.shape[0], 1]), X])
+        for i in range(iterations):
+            y_pred = X @ self.weights
+            loss = self._get_mse(y, y_pred)
+            self.losses.append(loss)
+            gradients = -1.0 * (y - y_pred).T @ X + self.lamb * np.sign(self.weights)
+            self.weights -= self.lr * gradients.T
+            if np.abs(self.losses[-1] - self.losses[-2]) / self.losses[-1] < self.tolerance:
+                break
+        return self.weights
+
+class RidgeLinearRegression(LinearRegression):
+    def __init__(self, lr, tolerance, lamb, pad=False):
+        super().__init__(self, lr, tolerance, pad=False)
+        self.lamb = lamb
+
+    def fit(self, X, y, iterations):
+        self.weights = np.random.randn(X.shape[1], y.shape[1])
+        if self.pad:
+            X = np.hstack([np.ones([X.shape[0], 1]), X])
+        for i in range(iterations):
+            y_pred = X @ self.weights
+            loss = self._get_mse(y, y_pred)
+            self.losses.append(loss)
+            gradients = -1.0 * (y - y_pred).T @ X + self.lamb * self.weights   # 2 gets absorbed
+            self.weights -= self.lr * gradients.T
+            if np.abs(self.losses[-1] - self.losses[-2]) / self.losses[-1] < self.tolerance:
+                break
+        return self.weights
+
+
+class ElasticLinearRegression(LinearRegression):
+    def __init__(self, lr, tolerance, alpha, beta, pad=False):
+        super().__init__(self, lr, tolerance, pad=False)
+        self.alpha = alpha
+        self.beta = beta
+
+    def fit(self, X, y, iterations):
+        self.weights = np.random.randn(X.shape[1], y.shape[1])
+        if self.pad:
+            X = np.hstack([np.ones([X.shape[0], 1]), X])
+        for i in range(iterations):
+            y_pred = X @ self.weights
+            loss = self._get_mse(y, y_pred)
+            self.losses.append(loss)
+            gradients = -1.0 * (y - y_pred).T @ X + self.alpha
+            self.weights -= self.lr * gradients.T
+            if np.abs(self.losses[-1] - self.losses[-2]) / self.losses[-1] < self.tolerance:
+                break
+        return self.weights
