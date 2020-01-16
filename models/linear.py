@@ -1,3 +1,8 @@
+import numpy as np
+import matplotlib.pyplot as plt
+import seaborn as sns
+
+
 class UnivariateLinearRegression:
     """Linear regression class with 1 variable."""
     def __init__(self):
@@ -45,7 +50,7 @@ class LinearRegressionNormal:
 class LinearRegression():
     def __init__(self, lr, tolerance, pad=False):
         self.lr = lr
-        self.tolerance
+        self.tolerance = tolerance
         self.pad = pad
         self.losses = [np.inf]
         self.weights = 0
@@ -63,12 +68,14 @@ class LinearRegression():
             loss = self._get_mse(y, y_pred)
             self.losses.append(loss)
             gradients = -1.0 * (y - y_pred).T @ X
-            self.weights -= self.lr * gradients.T
+            #self.weights -= self.lr * gradients.T
+            self.weights = self.weights - (self.lr * gradients.T)
             if np.abs(self.losses[-1] - self.losses[-2]) / self.losses[-1] < self.tolerance:
                 break
-        return self.weights
 
-    def predict(self, X, pad=False):
+    def predict(self, X):
+        if self.pad:
+            X = np.hstack([np.ones([X.shape[0], 1]), X])
         y_pred = X @ self.weights
         return y_pred
 
@@ -85,9 +92,10 @@ class LinearRegression():
         plt.ylabel('Loss')
         plt.title('Loss vs Number of Iterations')
 
+
 class LassoLinearRegression(LinearRegression):
     def __init__(self, lr, tolerance, lamb, pad=False):
-        super()__.init__(self, lr, tolerance, pad=False)
+        super().__init__(lr, tolerance, pad=False)
         self.lamb = lamb
 
     def fit(self, X, y, iterations):
@@ -99,14 +107,15 @@ class LassoLinearRegression(LinearRegression):
             loss = self._get_mse(y, y_pred)
             self.losses.append(loss)
             gradients = -1.0 * (y - y_pred).T @ X + self.lamb * np.sign(self.weights)
-            self.weights -= self.lr * gradients.T
+            # self.weights -= self.lr * gradients.T
+            self.weights = self.weights - (self.lr * gradients.T) # -> 3by3 of nans
             if np.abs(self.losses[-1] - self.losses[-2]) / self.losses[-1] < self.tolerance:
                 break
-        return self.weights
+
 
 class RidgeLinearRegression(LinearRegression):
     def __init__(self, lr, tolerance, lamb, pad=False):
-        super().__init__(self, lr, tolerance, pad=False)
+        super().__init__(lr, tolerance, pad=False)
         self.lamb = lamb
 
     def fit(self, X, y, iterations):
@@ -118,16 +127,15 @@ class RidgeLinearRegression(LinearRegression):
             loss = self._get_mse(y, y_pred)
             self.losses.append(loss)
             gradients = -1.0 * (y - y_pred).T @ X + self.lamb * self.weights   # 2 gets absorbed
-            self.weights -= self.lr * gradients.T
+            self.weights = self.weights - (self.lr * gradients.T)
             if np.abs(self.losses[-1] - self.losses[-2]) / self.losses[-1] < self.tolerance:
                 break
-        return self.weights
 
 
 class ElasticLinearRegression(LinearRegression):
     def __init__(self, lr, tolerance, alpha, beta, pad=False):
-        super().__init__(self, lr, tolerance, pad=False)
-        self.alpha = alpha
+        super().__init__(lr, tolerance, pad=False)
+        self.alpha = alpha  # seves as the lambda
         self.beta = beta
 
     def fit(self, X, y, iterations):
@@ -138,8 +146,7 @@ class ElasticLinearRegression(LinearRegression):
             y_pred = X @ self.weights
             loss = self._get_mse(y, y_pred)
             self.losses.append(loss)
-            gradients = -1.0 * (y - y_pred).T @ X + self.alpha
+            gradients = -1.0 * (y - y_pred).T @ X + self.alpha * self.beta * np.sign(self.weights) + self.alpha * (1 - self.beta) * self.weights
             self.weights -= self.lr * gradients.T
             if np.abs(self.losses[-1] - self.losses[-2]) / self.losses[-1] < self.tolerance:
                 break
-        return self.weights
