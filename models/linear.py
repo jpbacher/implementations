@@ -145,7 +145,8 @@ class ElasticLinearRegression(LinearRegression):
             y_pred = X @ self.weights
             loss = self._get_mse(y, y_pred)
             self.losses.append(loss)
-            gradients = -1.0 * (y - y_pred).T @ X + self.alpha * self.beta * np.sign(self.weights) + self.alpha * (1 - self.beta) * self.weights
+            gradients = (-1.0 * (y - y_pred).T @ X + self.alpha * self.beta * np.sign(self.weights) +
+                        self.alpha * (1 - self.beta) * self.weights)
             self.weights -= self.lr * gradients
             if np.abs(self.losses[-1] - self.losses[-2]) / self.losses[-1] < self.tolerance:
                 break
