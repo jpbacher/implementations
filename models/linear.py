@@ -48,14 +48,15 @@ class LinearRegressionNormal:
 
 
 class LinearRegression():
-    def __init__(self, lr, tolerance, pad=False):
+    def __init__(self, lr, tolerance, iterations, pad=False):
         self.lr = lr
         self.tolerance = tolerance
+        self.iterations = iterations
         self.pad = pad
         self.losses = [np.inf]
         self.weights = 0
 
-    def fit(self, X, y, iterations):
+    def fit(self, X, y):
         """
         Apply gradient descent based on number of iterations or until loss
         stops improving more than specified tolerance level.
@@ -63,13 +64,12 @@ class LinearRegression():
         self.weights = np.random.randn(X.shape[1], y.shape[1])
         if self.pad:
             X = np.hstack([np.ones([X.shape[0], 1]), X])
-        for i in range(iterations):
+        for i in range(self.iterations):
             y_pred = X @ self.weights
             loss = self._get_mse(y, y_pred)
             self.losses.append(loss)
-            gradients = -1.0 * (y - y_pred).T @ X
-            #self.weights -= self.lr * gradients.T
-            self.weights = self.weights - (self.lr * gradients.T)
+            gradients = -1.0 * X.T @ (y - y_pred)
+            self.weights = self.weights - (self.lr * gradients)
             if np.abs(self.losses[-1] - self.losses[-2]) / self.losses[-1] < self.tolerance:
                 break
 
@@ -94,21 +94,20 @@ class LinearRegression():
 
 
 class LassoLinearRegression(LinearRegression):
-    def __init__(self, lr, tolerance, lamb, pad=False):
-        super().__init__(lr, tolerance, pad=False)
+    def __init__(self, lr, tolerance, iterations, lamb, pad=False):
+        super().__init__(lr, tolerance, iterations, pad=False)
         self.lamb = lamb
 
-    def fit(self, X, y, iterations):
+    def fit(self, X, y):
         self.weights = np.random.randn(X.shape[1], y.shape[1])
         if self.pad:
             X = np.hstack([np.ones([X.shape[0], 1]), X])
-        for i in range(iterations):
+        for i in range(self.iterations):
             y_pred = X @ self.weights
             loss = self._get_mse(y, y_pred)
             self.losses.append(loss)
-            gradients = -1.0 * (y - y_pred).T @ X + self.lamb * np.sign(self.weights)
-            # self.weights -= self.lr * gradients.T
-            self.weights = self.weights - (self.lr * gradients.T) # -> 3by3 of nans
+            gradients = -1.0 * X.T @ (y - y_pred) + self.lamb * np.sign(self.weights)
+            self.weights = self.weights - (self.lr * gradients)
             if np.abs(self.losses[-1] - self.losses[-2]) / self.losses[-1] < self.tolerance:
                 break
 
@@ -127,7 +126,7 @@ class RidgeLinearRegression(LinearRegression):
             loss = self._get_mse(y, y_pred)
             self.losses.append(loss)
             gradients = -1.0 * (y - y_pred).T @ X + self.lamb * self.weights   # 2 gets absorbed
-            self.weights = self.weights - (self.lr * gradients.T)
+            self.weights = self.weights - (self.lr * gradients)
             if np.abs(self.losses[-1] - self.losses[-2]) / self.losses[-1] < self.tolerance:
                 break
 
@@ -147,6 +146,6 @@ class ElasticLinearRegression(LinearRegression):
             loss = self._get_mse(y, y_pred)
             self.losses.append(loss)
             gradients = -1.0 * (y - y_pred).T @ X + self.alpha * self.beta * np.sign(self.weights) + self.alpha * (1 - self.beta) * self.weights
-            self.weights -= self.lr * gradients.T
+            self.weights -= self.lr * gradients
             if np.abs(self.losses[-1] - self.losses[-2]) / self.losses[-1] < self.tolerance:
                 break
