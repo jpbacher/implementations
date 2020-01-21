@@ -1,7 +1,20 @@
 import numpy as np
+from sklearn.base import BaseEstimator, ClassifierMixin
+from sklearn.utils.validation import check_X_y, check_array, check_is_fitted
 import matplotlib.pyplot as plt
 import seaborn as sns
+np.random.seed(12)
 
+
+def binarycrossentropy(y, p_hat):
+    return -1.0 * np.sum(y * np.log(p_hat) + (1 - y) * np.log(1 - p_hat))
+
+def sigmoid(z):
+    return 1 / (1 + np.exp(-z))
+
+def mse(y_true, y_pred):
+    """MSE loss function."""
+    return np.trace((y_true - y_pred).T @ (y_true - y_pred)) / y_true.shape[0]
 
 class UnivariateLinearRegression:
     """Linear regression class with 1 variable."""
@@ -79,10 +92,6 @@ class LinearRegression():
         y_pred = X @ self.weights
         return y_pred
 
-    def _get_mse(self, y_true, y_pred):
-        """MSE loss function."""
-        return np.trace((y_true - y_pred).T @ (y_true - y_pred)) / y_true.shape[0]
-
     def plot_losses(self):
         """Plot the losses after applying gradient descent."""
         plt.figure(figsize=(6, 6))
@@ -93,60 +102,51 @@ class LinearRegression():
         plt.title('Loss vs Number of Iterations')
 
 
-class LassoLinearRegression(LinearRegression):
-    def __init__(self, lr, tolerance, iterations, lamb, pad=False):
-        super().__init__(lr, tolerance, iterations, pad=False)
-        self.lamb = lamb
+class LogisticRegression(BaseEstimator, ClassifierMixin):
+    def __init__(self, n_iter=10000, tol=1e-4, lr=1e-4, alpha=0, beta=0,
+                fit_intercept):
+        self.n_iter = n_iter
+        self.tolerance = tol
+        self.lr = lr
+        self.weights_ = 0
+        self.alpha = alpha
+        self.beta = beta
+        self.fit_intercept = fit_intercept
 
     def fit(self, X, y):
-        self.weights = np.random.randn(X.shape[1], y.shape[1])
-        if self.pad:
-            X = np.hstack([np.ones([X.shape[0], 1]), X])
-        for i in range(self.iterations):
-            y_pred = X @ self.weights
-            loss = self._get_mse(y, y_pred)
-            self.losses.append(loss)
-            gradients = -1.0 * X.T @ (y - y_pred) + self.lamb * np.sign(self.weights)
-            self.weights = self.weights - (self.lr * gradients)
-            if np.abs(self.losses[-1] - self.losses[-2]) / self.losses[-1] < self.tolerance:
+        """
+        This method gets X and y arrays and applies gradient descent.
+
+        :param X: nd array
+        :param y: nd array
+        :param pad: boolean arguement to add y-intercept
+
+        :return: self.beta
+        """
+        X, y = check_X_y(X, y)
+        loss = [np.inf]
+        if self.fit_intercept:
+            X = np.hstack([np.ones((X.shape[0], 1)), X])
+        self.weights_ = np.random.randn(X.shape[1], y.shape[1])
+        for i in range(self.n_iter):
+            p_hat = self.predict(X)
+            loss.append(binarycrossentropy(y, p_hat))
+            grad = -1.0 * X.T @ (y - p_hat) + \
+                self.alpha * (
+                    self.beta * np.sign(self.weights_) +
+                    (1 - self.beta) * self.weights_
+                )
+            self.weights_ -= self.lr * grad
+            if abs(loss[-1] - loss[-2]) < self.tolerance:
                 break
+        return self
 
+    def predict(self, X):
 
-class RidgeLinearRegression(LinearRegression):
-    def __init__(self, lr, tolerance, lamb, pad=False):
-        super().__init__(lr, tolerance, pad=False)
-        self.lamb = lamb
-
-    def fit(self, X, y, iterations):
-        self.weights = np.random.randn(X.shape[1], y.shape[1])
-        if self.pad:
-            X = np.hstack([np.ones([X.shape[0], 1]), X])
-        for i in range(iterations):
-            y_pred = X @ self.weights
-            loss = self._get_mse(y, y_pred)
-            self.losses.append(loss)
-            gradients = -1.0 * (y - y_pred).T @ X + self.lamb * self.weights   # 2 gets absorbed
-            self.weights = self.weights - (self.lr * gradients)
-            if np.abs(self.losses[-1] - self.losses[-2]) / self.losses[-1] < self.tolerance:
-                break
-
-
-class ElasticLinearRegression(LinearRegression):
-    def __init__(self, lr, tolerance, alpha, beta, pad=False):
-        super().__init__(lr, tolerance, pad=False)
-        self.alpha = alpha  # seves as the lambda
-        self.beta = beta
-
-    def fit(self, X, y, iterations):
-        self.weights = np.random.randn(X.shape[1], y.shape[1])
-        if self.pad:
-            X = np.hstack([np.ones([X.shape[0], 1]), X])
-        for i in range(iterations):
-            y_pred = X @ self.weights
-            loss = self._get_mse(y, y_pred)
-            self.losses.append(loss)
-            gradients = (-1.0 * (y - y_pred).T @ X + self.alpha * self.beta * np.sign(self.weights) +
-                        self.alpha * (1 - self.beta) * self.weights)
-            self.weights -= self.lr * gradients
-            if np.abs(self.losses[-1] - self.losses[-2]) / self.losses[-1] < self.tolerance:
-                break
+        check_is_fitted(self)
+        X = check_array(X)
+        if self.fit_intercept:
+            X = np.hstack([np.ones((X.shape[0], 1)), X])
+        y_hat = X @ self.weights_
+        p_hat = sigmoid(y_hat)
+        return p_hat
