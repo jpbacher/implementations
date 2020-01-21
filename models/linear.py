@@ -102,31 +102,37 @@ class LinearRegression():
         plt.title('Loss vs Number of Iterations')
 
 
-class LogisticRegression(BaseEstimator, ClassifierMixin):
+class LogisticRegression():
     def __init__(self, n_iter=10000, tol=1e-4, lr=1e-4, alpha=0, beta=0,
                 fit_intercept):
         self.n_iter = n_iter
         self.tolerance = tol
         self.lr = lr
-        self.weights_ = 0
         self.alpha = alpha
         self.beta = beta
         self.fit_intercept = fit_intercept
 
+    def _add_intercept(self, X):
+        intercept = np.ones((X.shape[0], 1))
+        return np.hstack([intercept, X])
+
     def fit(self, X, y):
         """
         This method gets X and y arrays and applies gradient descent.
-
-        :param X: nd array
-        :param y: nd array
-        :param pad: boolean arguement to add y-intercept
-
-        :return: self.beta
+        Parameters
+        ----------
+        X : array-like, shape (n_samples, n_features)
+            The training input samples.
+        y : array, shape (n_samples,)
+            The target values, an array of ones and zeros.
+        Returns
+        -------
+        self : object
         """
         X, y = check_X_y(X, y)
         loss = [np.inf]
         if self.fit_intercept:
-            X = np.hstack([np.ones((X.shape[0], 1)), X])
+            X = self._add_intercept(X)
         self.weights_ = np.random.randn(X.shape[1], y.shape[1])
         for i in range(self.n_iter):
             p_hat = self.predict(X)
@@ -141,12 +147,39 @@ class LogisticRegression(BaseEstimator, ClassifierMixin):
                 break
         return self
 
-    def predict(self, X):
-
-        check_is_fitted(self)
-        X = check_array(X)
+    def predict_proba(self, X):
+        """
+        Get predicted probabilities.
+        Parameters
+        ----------
+        X : array-like, shape (n_samples, n_features)
+            The input samples.
+        Returns
+        -------
+        y : ndarray, shape (n_samples,)
+            The predicted probabilities for each sample.
+        """
+        # check is fit has been called
+        check_is_fitted(self, 'is_fitted_')
+        # input validation
+        X = check_array(X, accept_sparse=True)
         if self.fit_intercept:
-            X = np.hstack([np.ones((X.shape[0], 1)), X])
+            X = self._add_intercept(X)
         y_hat = X @ self.weights_
-        p_hat = sigmoid(y_hat)
-        return p_hat
+        return sigmoid(y_hat)
+
+    def predict(self, X, thresh=0.5):
+        """
+        Get hard-coded predictions from predicted probabilities determined
+        by threshold.
+        Parameters
+        ----------
+        X : array-like, shape (n_samples, n_features)
+            The input samples.
+        thresh : float, between 0 and 1
+        Returns
+        -------
+        y : ndarray, shape (n_samples,)
+            The predicted class for each sample.
+        """
+        return self.predict_proba(X) >= thresh
