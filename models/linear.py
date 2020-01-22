@@ -61,34 +61,67 @@ class LinearRegressionNormal:
 
 
 class LinearRegression():
-    def __init__(self, lr, tolerance, iterations, pad=False):
+    def __init__(self, n_iter=10000, tol=1e-4, lr=1e-4, fit_intercept=True):
+        self.n_iter = n_iter
+        self.tol = tolerance
         self.lr = lr
-        self.tolerance = tolerance
-        self.iterations = iterations
-        self.pad = pad
-        self.losses = [np.inf]
-        self.weights = 0
+        self.fit_intercept = fit_intercept
+
+    def _add_intercept(self, X):
+        intercept = np.ones((X.shape[0], 1))
+        return np.hstack([intercept, X])
 
     def fit(self, X, y):
         """
         Apply gradient descent based on number of iterations or until loss
         stops improving more than specified tolerance level.
         """
-        self.weights = np.random.randn(X.shape[1], y.shape[1])
-        if self.pad:
-            X = np.hstack([np.ones([X.shape[0], 1]), X])
-        for i in range(self.iterations):
-            y_pred = X @ self.weights
-            loss = self._get_mse(y, y_pred)
+        self.losses = [np.inf]
+        self.weights_ = np.random.randn(X.shape[1], y.shape[1])
+        if self.fit_intercept:
+            X = self._add_intercept(X)
+        for i in range(self.n_iter):
+            y_pred = X @ self.weights_
+            loss = mse(y, y_pred)
             self.losses.append(loss)
             gradients = -1.0 * X.T @ (y - y_pred)
-            self.weights = self.weights - (self.lr * gradients)
-            if np.abs(self.losses[-1] - self.losses[-2]) / self.losses[-1] < self.tolerance:
+            self.weights_ = self.weights_ - (self.lr * gradients)
+            if np.abs(self.losses[-1] - self.losses[-2]) / self.losses[-1] < self.tol:
                 break
 
+    def partial_fit(self, X, y):
+        """
+        This method gets X and y arrays and applies gradient descent. It does not
+        initialize weights every time so we can feed the algorithm different data
+        points; only runs one iteration.
+        Parameters
+        ----------
+        X : array-like, shape (n_samples, n_features)
+            The training input sample.
+        y : array, shape (n_samples,)
+            The target variable, a real number.
+        Returns
+        -------
+        loss : loss value of one iteration.
+        """
+
+        X, y = check_X_y(X, y)
+        self.losses = [np.inf]
+        if self.intercept:
+            X = self._add_intercept(X)
+        if self.weights_ is None:
+            self.weights_ = np.random.randn(X.shape[1], y.shape[1])
+        y_pred = X @ self.weights_
+        loss = mse(y, y_pred)
+        self.losses.append(loss)
+        gradients = -1.0 * X.T @ (y - y_pred)
+        self.weights_ -= (self.lr * gradients)
+        loss = mse(y, y_pred)
+        return loss        
+
     def predict(self, X):
-        if self.pad:
-            X = np.hstack([np.ones([X.shape[0], 1]), X])
+        if self.fit_intercept:
+            X = self._add_intercept(X)
         y_pred = X @ self.weights
         return y_pred
 
