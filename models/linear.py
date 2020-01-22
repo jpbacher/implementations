@@ -117,7 +117,7 @@ class LinearRegression():
         gradients = -1.0 * X.T @ (y - y_pred)
         self.weights_ -= (self.lr * gradients)
         loss = mse(y, y_pred)
-        return loss        
+        return loss
 
     def predict(self, X):
         if self.fit_intercept:
@@ -149,6 +149,37 @@ class LogisticRegression():
         intercept = np.ones((X.shape[0], 1))
         return np.hstack([intercept, X])
 
+    def partial_fit(self, X, y):
+        """
+        This method gets X and y arrays and applies gradient descent. It does not
+        initialize weights every time so we can feed the algorithm different data
+        points; only runs one iteration.
+        Parameters
+        ----------
+        X : array-like, shape (n_samples, n_features)
+            The training input sample.
+        y : array, shape (n_samples,)
+            The target values, an array of ones and zeros.
+        Returns
+        -------
+        loss : loss value of one iteration.
+        """
+        self.weights_ = None
+        X, y = check_X_y(X, y)
+        if self.fit_intercept:
+            X = self._add_intercept(X)
+        if self.weights_ is None:
+            self.weights_ = np.random.randn(X.shape[1], y.shape[1])
+        p_pred = self.predict_proba(X)
+        grad = -1.0 * X.T @ (y - p_pred) + \
+                self.alpha * (
+                    self.beta * np.sign(self.weights_) +
+                    (1 - self.beta) * self.weights_
+                )
+        self.weights_ -= self.lr * grad
+        loss = binarycrossentropy(y, p_pred)
+        return loss 
+
     def fit(self, X, y):
         """
         This method gets X and y arrays and applies gradient descent.
@@ -168,7 +199,7 @@ class LogisticRegression():
             X = self._add_intercept(X)
         self.weights_ = np.random.randn(X.shape[1], y.shape[1])
         for i in range(self.n_iter):
-            p_hat = self.predict(X)
+            p_hat = self.predict_proba(X)
             loss.append(binarycrossentropy(y, p_hat))
             grad = -1.0 * X.T @ (y - p_hat) + \
                 self.alpha * (
@@ -193,7 +224,7 @@ class LogisticRegression():
             The predicted probabilities for each sample.
         """
         # check is fit has been called
-        check_is_fitted(self, 'is_fitted_')
+        # check_is_fitted(self, 'is_fitted_')
         # input validation
         X = check_array(X, accept_sparse=True)
         if self.fit_intercept:
