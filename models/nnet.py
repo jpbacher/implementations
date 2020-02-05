@@ -27,8 +27,8 @@ class Layer(BaseLayer):
         if he:
             self.w = np.random.randn((size_in, size_out) * np.sqrt(1 / size_in*size_out))
             self.b = np.random.randn((1, size_out) * np.sqrt(1 / size_in*size_out))
-        self.w = np.random.randn(size_in, size_out)
-        self.b = np.random.randn(1, size_out)
+        else:
+            self.w = np.random.randn(size_in, size_out)
+            self.b = np.random.randn(1, size_out)
         self.activation = activation
         self.lr = lr
-        
