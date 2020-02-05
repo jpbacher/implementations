@@ -19,3 +19,16 @@ class BaseLayer:
         constructing models.
         """
         return self.add_after(layer)
+
+
+class Layer(BaseLayer):
+    def __init__(self, size_in, size_out, activation, lr, he=False, batch_norm_p=1)
+        super().__init__()
+        if he:
+            self.w = np.random.randn((size_in, size_out) * np.sqrt(1 / size_in*size_out))
+            self.b = np.random.randn((1, size_out) * np.sqrt(1 / size_in*size_out))
+        self.w = np.random.randn(size_in, size_out)
+        self.b = np.random.randn(1, size_out)
+        self.activation = activation
+        self.lr = lr
+        
