@@ -74,3 +74,22 @@ class Layer(BaseLayer):
         my_params = [self.w, self.b]
         params.extend(my_params)
         return params
+
+
+class OutputLayer(Layer):
+
+    def backward(self, z_in, y):
+        y_hat = self.forward(z_in)
+        grad_h = y_hat - y
+
+        grad_w = z_in.T @ grad_h
+        grad_b = np.sum(grad_h, axis=0)
+        grad_z_in = grad_h @ self.w.T
+        return grad_z_in
+
+    def predict(self, z_in):
+        return self.forward(z_in)
+
+    def get_params(self):
+        my_params = [self.w, self.b]
+        return my_params
