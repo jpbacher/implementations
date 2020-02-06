@@ -2,9 +2,7 @@ import numpy as np
 
 
 class BaseLayer:
-    """Base class for all layers. Contains methods for connecting
-    layers together.
-    """
+    """Base class for all layers. Contains methods for connecting layers."""
     def __init__(self):
         self.end = end
         self.after = after
@@ -32,3 +30,47 @@ class Layer(BaseLayer):
             self.b = np.random.randn(1, size_out)
         self.activation = activation
         self.lr = lr
+        self.batch_norm_p = batch_norm_p
+        self.mu_h = 0
+        self.std_h= 1
+
+    def forward(self, z_in):
+        h = z_in @ self.w + self.b
+        mu_h = np.mean(h, keepdims=True, axis=0)
+        self.mu_h = self.mu_h * self.batch_norm_p + mu_h * (1 - self.batch_norm_p)
+        std_h = np.std(h, keepdims=True, axis=0)
+        self.std_h = self.std_h * self.batch_norm_p + std_h * (1 - self.batch_norm_p)
+        h_norm = (h - self.mu_h) / self.std_h
+        z_out = self.activation(h_norm)
+        return z_out
+
+    def backward(self, z_in, y):
+        h = z_in @ self.w + self.b
+        mu_h = np.mean(h, keepdims=True, axis=0)
+        self.mu_h = self.mu_h * self.batch_norm_p + mu_h * (1 - self.batch_norm_p)
+        std_h = np.std(h, keepdims=True, axis=0)
+        self.std_h = self.std_h * self.batch_norm_p + std_h * (1 - self.batch_norm_p)
+        h_norm = (h - self.mu_h) / self.std_h
+        z_out = self.activation(h_norm)
+
+        grad_after = self.after.backward(z_out, y)
+        grad_h_norm = grad_after * self.activation.deriv(h_norm)
+        grad_h = grad_h_norm / self.std_h
+
+        grad_w = z_in.T @ grad_h
+        grad_b = np.sum(grad_h, axis=0)
+        grad_z_in = grad_h @ self.w.T
+
+        self.w = grad_w
+        self.b =grad_b
+
+        return grad_z_in
+
+    def predict(self, z_in):
+        return self.after.predict(self.forward(z_in))
+
+    def get_params(self):
+        params = self.after.get_params()
+        my_params = [self.w, self.b]
+        params.extend(my_params)
+        return params
