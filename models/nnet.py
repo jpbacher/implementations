@@ -93,3 +93,43 @@ class OutputLayer(Layer):
     def get_params(self):
         my_params = [self.w, self.b]
         return my_params
+
+
+class EmptyLayer(BaseLayer):
+    def __init__(self, grad):
+        super().__init__()
+        self.grad = grad
+
+    def backward(self, **args, **kwargs):
+        return self.grad
+
+    @staticmethod
+    def forward(z_in):
+        return z_in
+
+    @staticmethod
+    def predict(z_in):
+        return z_in
+
+    @staticmethod
+    def get_params():
+        return []
+
+
+class SplitLayer(BaseLayer):
+
+    def __init__(self, left, right):
+        super(SplitLayer, self).__init__()
+        self.left = left
+        self.right = right
+        self.left.add_after(EmptyLayer(0))
+        self.right.add_after(EmptyLayer(0))
+
+    def forward(self, z_in):
+        z_left = self.left.forward(z_in)
+        z_right - self.right.forward(z_in)
+        z_out = np.hstack([z_left, z_right])
+        return z_out
+
+
+
