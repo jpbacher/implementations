@@ -44,5 +44,7 @@ class TfidfVector:
         return self
 
     def transform(self, X):
-        X = X * self.idf
-        return X
+        tfidf_dict = {}
+        for tok in tfidf_dict:
+            tfidf_dict[tok] = tfidf_dict[tok] * self.idf[tok]
+        return tfidf_dict
